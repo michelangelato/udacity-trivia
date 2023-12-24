@@ -14,13 +14,16 @@ That's where you come in! Help them finish the trivia app so they can start hold
 
 Completing this trivia app will give you the ability to structure plan, implement, and test an API - skills essential for enabling your future applications to communicate with others.
 
-## Starting and Submitting the Project
+## Quick Start
 
-[Fork](https://help.github.com/en/articles/fork-a-repo) the project repository and [clone](https://help.github.com/en/articles/cloning-a-repository) your forked repository to your machine. Work on the project locally and make sure to push all your changes to the remote repository before submitting the link to your repository in the Classroom.
-
-## About the Stack
-
-We started the full stack application for you. It is designed with some key functional areas:
+* clone the project
+* ```cd  udacity-trivia/backend```
+* ```source trivia_venv/bin/activate```
+* ```pip install -r requirements.txt```
+* ```createdb trivia```
+* ```export FLASK_APP=flaskr```
+* ```export FLASK_ENV=development```
+* ```flask run --reload```
 
 ### Backend
 
