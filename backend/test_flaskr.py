@@ -2,28 +2,28 @@ import os
 import unittest
 import json
 from flask_sqlalchemy import SQLAlchemy
-
+from dotenv import load_dotenv
 from flaskr import create_app
 from models import setup_db, Question, Category
-
 
 class TriviaTestCase(unittest.TestCase):
     """This class represents the trivia test case"""
 
     def setUp(self):
         """Define test variables and initialize app."""
-        self.app = create_app()
-        self.client = self.app.test_client
-        self.database_name = "trivia_test"
-        self.database_path = "postgresql://{}/{}".format('localhost:5432', self.database_name)
-        setup_db(self.app, self.database_path)
+        load_dotenv()
+        TEST_DB_NAME = os.environ.get('TEST_DB_NAME')
+        DB_USER = os.environ.get('DB_USER')
+        DB_PASSWORD = os.environ.get('DB_PASSWORD')
+        DB_HOST = os.environ.get('DB_HOST')
+        DB_PORT = os.environ.get('DB_PORT')
+        self.database_name = TEST_DB_NAME
+        self.database_path = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{TEST_DB_NAME}'
 
-        # binds the app to the current context
-        with self.app.app_context():
-            self.db = SQLAlchemy()
-            self.db.init_app(self.app)
-            # create all tables
-            self.db.create_all()
+        self.app = create_app(test_config=True)
+        self.client = self.app.test_client
+        
+        setup_db(self.app, self.database_path)
     
     def tearDown(self):
         """Executed after reach test"""

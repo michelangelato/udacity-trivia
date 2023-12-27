@@ -1,6 +1,4 @@
-import os
 from flask import Flask, request, abort, jsonify
-from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import random
 
@@ -23,7 +21,8 @@ def paginate_questions(request, list):
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__)
-    setup_db(app)
+    if test_config is None:
+        setup_db(app)
     CORS(app)
 
     # CORS configuration using after_request
