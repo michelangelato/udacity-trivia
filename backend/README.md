@@ -231,6 +231,22 @@ The `--reload` flag will detect file changes and restart the server automaticall
 }
 ```
 
+### Errors
+
+* 400 -> Bad request
+* 404 -> Not found
+* 422 -> Not processable
+* 500 -> Internal Server Error
+
+Sample error response:
+```json
+{
+  "error": 422,
+  "message": "Not processable",
+  "success": false
+}
+```
+
 
 ## Testing
 

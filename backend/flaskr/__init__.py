@@ -48,18 +48,24 @@ def create_app(test_config=None):
     # get the list of categories
     @app.route('/categories', methods=['GET'])
     def get_categories():
-        categories = Category.query.order_by(Category.id).all()
+        try:
+            categories = Category.query.order_by(Category.id).all()
 
-        if len(categories) == 0:
-            # return 404
-            abort(404)
-        else:
-            # return 200
-            return jsonify({
-                'categories': {
+            if len(categories) == 0:
+                # return 404
+                abort(404)
+            else:
+                # return 200
+                results = {
                     str(category.id): category.type for category in categories
                 }
-            })
+                return jsonify({
+                    'categories': results
+                })
+        except Exception as error:
+            # internal server error
+            print(f'GET /categories error: {error}')
+            abort(500)
 
     """
     Create an endpoint to handle GET requests for questions,
@@ -75,16 +81,63 @@ def create_app(test_config=None):
     # get the list of questions, paginated
     @app.route('/questions', methods=['GET'])
     def get_questions():
-        # get categories list
-        categories = Category.query.order_by(Category.id).all()
-        if len(categories) == 0:
-            abort(404)
-        else:
-            # take the first category as current
-            current_category = categories[0].type
+        try:
+            # get categories list
+            categories = Category.query.order_by(Category.id).all()
+            if len(categories) == 0:
+                abort(404)
+            else:
+                # take the first category as current
+                current_category = categories[0].type
 
-            # get questions
-            list = Question.query.order_by(Question.id).all()
+                # get questions
+                list = Question.query.order_by(Question.id).all()
+
+                # paginate questions
+                current_questions = paginate_questions(request, list)
+
+                if len(current_questions) == 0:
+                    # return 404
+                    abort(404)
+                else:
+                    # return 200
+                    return jsonify({
+                        'questions': current_questions,
+                        'categories': {
+                            str(row.id): row.type for row in categories
+                        },
+                        'currentCategory': current_category,
+                        'totalQuestions': len(list)
+                    })
+        except Exception as error:
+            # internal server error
+            print(f'GET /questions error: {error}')
+            abort(500)
+
+    """
+    Create a GET endpoint to get questions based on category.
+    TEST: In the "List" tab / main screen, clicking on one of the
+    categories in the left column will cause only questions of that
+    category to be shown.
+    """
+    # get the list of questions by category
+    @app.route('/categories/<int:category_id>/questions', methods=['GET'])
+    def get_questions_by_category(category_id):
+        try:
+            # get the category
+            category = Category.query.filter(
+                Category.id == category_id).one_or_none()
+
+            if category is None:
+                abort(404, 'Category not found.')
+
+            # get the questions
+            base_query = Question.query.filter(
+                Question.category == category_id
+            )
+
+            # get questions from db
+            list = base_query.all()
 
             # paginate questions
             current_questions = paginate_questions(request, list)
@@ -96,48 +149,13 @@ def create_app(test_config=None):
                 # return 200
                 return jsonify({
                     'questions': current_questions,
-                    'categories': {
-                        str(row.id): row.type for row in categories
-                    },
-                    'currentCategory': current_category,
-                    'totalQuestions': len(list)
+                    'totalQuestions': len(list),
+                    "currentCategory": category.type
                 })
-
-    """
-    Create a GET endpoint to get questions based on category.
-    TEST: In the "List" tab / main screen, clicking on one of the
-    categories in the left column will cause only questions of that
-    category to be shown.
-    """
-    # get the list of questions by category
-    @app.route('/categories/<int:category_id>/questions', methods=['GET'])
-    def get_questions_by_category(category_id):
-        # get the category
-        category = Category.query.filter(
-            Category.id == category_id).one_or_none()
-
-        if category is None:
-            abort(404, 'Category not found.')
-
-        # get the questions
-        base_query = Question.query.filter(Question.category == category_id)
-
-        # get questions from db
-        list = base_query.all()
-
-        # paginate questions
-        current_questions = paginate_questions(request, list)
-
-        if len(current_questions) == 0:
-            # return 404
-            abort(404)
-        else:
-            # return 200
-            return jsonify({
-                'questions': current_questions,
-                'totalQuestions': len(list),
-                "currentCategory": category.type
-            })
+        except Exception as error:
+            # internal server error
+            print(f'GET /categories/<id>/questions error: {error}')
+            abort(500)
 
     """
     Create an endpoint to DELETE question using a question ID.
@@ -167,9 +185,9 @@ def create_app(test_config=None):
                 return jsonify({
                     'deleted': question.id
                 })
-        except Exception as ex:
+        except Exception as error:
             # internal server error
-            print(f'Error deleting question: {ex}')
+            print(f'DELETE /questions error: {error}')
             abort(500, 'Error deleting the question.')
 
     """
@@ -205,24 +223,29 @@ def create_app(test_config=None):
         search = body.get('searchTerm', None)
 
         if search is not None:
-            # search questions
-            list = Question.query.filter(
-                Question.question.ilike(f'%{search}%')
-            ).order_by(
-                Question.id
-            ).all()
+            try:
+                # search questions
+                list = Question.query.filter(
+                    Question.question.ilike(f'%{search}%')
+                ).order_by(
+                    Question.id
+                ).all()
 
-            # paginate questions
-            current_questions = paginate_questions(request, list)
+                # paginate questions
+                current_questions = paginate_questions(request, list)
 
-            category = Category.query.order_by(Category.id).first()
+                category = Category.query.order_by(Category.id).first()
 
-            # return found results
-            return jsonify({
-                'questions': current_questions,
-                'totalQuestions': len(list),
-                'currentCategory': category.type
-            }), 200
+                # return found results
+                return jsonify({
+                    'questions': current_questions,
+                    'totalQuestions': len(list),
+                    'currentCategory': category.type
+                }), 200
+            except Exception as error:
+                # internal server error
+                print(f'POST /questions (search) error: {error}')
+                abort(500)
         elif new_question is not None and new_answer is not None:
             # get category id
             category = Category.query.filter_by(id=new_category).one_or_none()
@@ -269,37 +292,42 @@ def create_app(test_config=None):
                 'Both "quiz_category" and "previous_questions" are required.'
             )
 
-        # get category id
-        category_id = quiz_category.get('id')
+        try:
+            # get category id
+            category_id = quiz_category.get('id')
 
-        # base query
-        base_query = Question.query
+            # base query
+            base_query = Question.query
 
-        # filter by category
-        if category_id != 0:
-            base_query = base_query.filter_by(category=category_id)
+            # filter by category
+            if category_id != 0:
+                base_query = base_query.filter_by(category=category_id)
 
-        # get questions from db
-        questions = base_query.all()
+            # get questions from db
+            questions = base_query.all()
 
-        # filter out previous questions
-        if previous_questions is not None:
-            questions = [
-                q for q in questions if q.id not in previous_questions]
+            # filter out previous questions
+            if previous_questions is not None:
+                questions = [
+                    q for q in questions if q.id not in previous_questions]
 
-        # if no available questions return empty response
-        if not questions:
-            return jsonify({
-                'question': None
-            }), 200
-        else:
-            # select a random question
-            random_question = random.choice(questions)
+            # if no available questions return empty response
+            if not questions:
+                return jsonify({
+                    'question': None
+                }), 200
+            else:
+                # select a random question
+                random_question = random.choice(questions)
 
-            # return random question
-            return jsonify({
-                'question': random_question.format()
-            }), 200
+                # return random question
+                return jsonify({
+                    'question': random_question.format()
+                }), 200
+        except Exception as error:
+            # internal server error
+            print(f'POST /quizzes error: {error}')
+            abort(500)
 
     """
     Create error handlers for all expected errors
